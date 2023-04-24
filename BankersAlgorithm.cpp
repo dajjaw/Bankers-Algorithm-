@@ -25,7 +25,7 @@ int main(){
     //resources needed to complete the process
     int need[N][M];         
     
-    // open file and read information into variables
+    // open file 
     fstream fin;
     fin.open("data.txt");
 
@@ -98,7 +98,8 @@ int main(){
         }
         if(queueIndex > 3){
             //isSafe = true;
-            cout << "A safe state is: {" << safeState[0] << ", " << safeState[1] << ", " << safeState[2] << ", " << safeState[3] << "}" << endl;
+            cout << "The resources are in  safe state! " << endl;
+            cout << "A safe state of: {" << safeState[0] << ", " << safeState[1] << ", " << safeState[2] << ", " << safeState[3] << "}" << endl;
             loopChecks = N;
         }
         loopChecks++;
