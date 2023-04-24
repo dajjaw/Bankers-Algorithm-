@@ -4,133 +4,104 @@
 // Operating Systems
 
 #include <iostream>
-#include <pthread.h>
-#include <semaphore.h>
-#include <unistd.h>
-#include <fstream>  
+#include <fstream>
 using namespace std;
 
-const int maxProcesses = 100;
-const int maxResources = 100;
-int processesRead; //resources
-int resourcesRead;
-string resourceName[maxResources];
-string processName[maxProcesses];
-int resourceAmount[maxResources];
-int processResourceMax[maxProcesses][maxResources];
-int allocated[maxProcesses][maxResources];
-int need[maxProcesses][maxResources];
-int available[maxResources];
-bool processCompleted[maxProcesses];
-
-void safeState(){
-    // need = processmax - resource allocated
-    for (int i=0; i<processesRead; i++){
-        for(int j= 0; j< resourcesRead; j++){
-            need[i][j] = processResourceMax[i][j]- allocated[i][j];
-        }
-    }
-    // available =max - sum(allocated)
-    for(int i=0; i<resourcesRead; i++){
-        int s=0;
-        for(int j=0; j< processesRead; j++){
-            s += allocated[j][i];
-        }
-        available[i]= resourceAmount[i]-s;
-        cout << available[i] << " ";
-    }
-    cout << endl;
-    bool change = true;
-    int completeProcessesCount = 0;
-    int safeSequence[maxProcesses];
-    int top = 0;
-    bool processComplete = true;
-    while(change){
-        change = false;
-        for(int i=0;i<processesRead; i++){
-            if (processCompleted[i]) continue;
-            processComplete = true;
-            for(int j=0;j<resourcesRead; j++){
-                if (need[i][j]>available[j]){
-                    processComplete = false;
-                    break;         
-                 }
-            }
-            if (processComplete){
-                processCompleted[i] = true;
-                change = true;
-                completeProcessesCount++;
-                for(int j=0;j<resourcesRead; j++){
-                    available[j]+= allocated[i][j];
-                }
-                safeSequence[top++]= i;
-            }
-        }
-    }
-    if (completeProcessesCount == processesRead){
-        cout << "Safe state available: ";
-        for (int i = 0; i< processesRead; i++){
-            cout<<safeSequence[i];
-        }
-        cout << endl;
-    }
-    else {
-        cout << "No safe state available \n";
-    }
-}
-
 int main(){
-    ifstream fin;
+    int M = 3; // number of resources
+    int N = 4; // number of threads
+    //names for resources
+    string resourceName[M]; 
+    //resources available
+    int resourceNumber[M]; 
+    //name of threads
+    string threadName[N];   
+    //names of threads in order to achieve safe state
+    string safeState[N];    
+    //max resources needed for each thread
+    int resourceMax[N][M];  
+    //resources allocated per thread
+    int resourceAllocated[N][M];    
+    //resources needed to complete the process
+    int need[N][M];         
+    
+    // open file and read information into variables
+    fstream fin;
+    fin.open("data.txt");
 
-   fin.open("data.txt");
+    for(int i=1; i<=M; i++) {
+        fin >> resourceName[i-1] >> resourceNumber[i-1];
+        // test output
+        //cout << resourceName[i-1] << " + " << resourceNumber[i-1] << endl;
+    }
 
-   for(int i=0; i<100;i++){
-   fin >> resourceName[i];
-   if (resourceName[i] == "#"){
-       resourcesRead = i;
-        break;
-   }
-   fin>>resourceAmount[i];
-   }
-   for(int i= 0; i<resourcesRead; i++){
-       cout<<resourceName[i]<< resourceAmount[i]<< endl;
-   }
-   for(int i=0; i<100; i++){
-       fin >> processName[i];
-       if(processName[i]=="#"){
-           processesRead = i;
-          break;
-       }
-      for(int j = 0; j<resourcesRead; j++){
-          fin >> processResourceMax[i][j];
-      }
-   }
-   for(int i= 0; i<processesRead; i++){
-       cout << processName[i] << " ";
-       for(int j=0; j<resourcesRead; j++){
-           cout << processResourceMax[i][j] << " ";
-       }
-       cout << endl;
-   }
+    fin.ignore(1, '\n');
+    fin.ignore(1, '\n');
+    fin.ignore(1, '\n');
 
-   string p;
+    for(int j=1; j<=N; j++){
+        fin >> threadName[j-1];
+        //cout << threadName[j-1];
+        for(int i=1; i<=M; i++){
+            fin >> resourceMax[j-1][i-1];
+            //cout << " + " << resourceMax[j-1][i-1];
+        }
+        //cout << endl;
+    }
 
-   for(int i=0;i<processesRead; i++){
-               for (int k= 0; k<resourcesRead; k++){
-                   fin>> allocated[i][k];
-               }
-           }
-
-    for(int i= 0; i<processesRead; i++){
-       cout << processName[i] << " ";
-       for(int j=0; j<resourcesRead; j++){
-           cout << allocated[i][j] << " ";
-       }
-       cout << endl;
-       for (int i= 0; i<maxProcesses; i++){
-           processCompleted[i] = false;
-       }
-   }
+    fin.ignore(1, '\n');
+    fin.ignore(1, '\n');
+    fin.ignore(1, '\n');
    
-   safeState();
+    for(int j=1; j<=N; j++){
+        for(int i=1; i<=M; i++){
+            fin >> resourceAllocated[j-1][i-1];
+            //cout << resourceAllocated[j-1][i-1] << " ";
+        }
+        //cout << endl;
+    }
+    fin.close();
+   
+    // calculate the need of each process
+    for(int j=1; j<=N; j++){
+        for(int i=1; i<=M; i++){
+            need[j-1][i-1] = resourceMax[j-1][i-1] - resourceAllocated[j-1][i-1];
+            //cout << need[j-1][i-1] << " ";
+        }
+        //cout << endl;
+    }
+
+    // calculate the currently available resources
+    for (int j=1; j<=N; j++){
+        for(int i=1; i<=M; i++)
+        {
+            resourceNumber[i-1] -= resourceAllocated[j-1][i-1];
+        }      
+    }
+
+    //bool isSafe = false;
+    int queueIndex = 0;
+    int loopChecks = 0;
+    // check if available > need then complete process and store process in safe state
+    do {
+        for(int j=0; j<=N; j++){
+            if(resourceNumber[0] >= need[j-1][0] && resourceNumber[1] >= need[j-1][1] && resourceNumber[2] >= need[j-1][2])
+            {
+                resourceNumber[0] += resourceAllocated[j-1][0];
+                resourceNumber[1] += resourceAllocated[j-1][1];
+                resourceNumber[2] += resourceAllocated[j-1][2];
+                need[j-1][0] = 100;
+                need[j-1][1] = 100;
+                need[j-1][2] = 100;
+                safeState[queueIndex++] = threadName[j-1];
+            }
+        }
+        if(queueIndex > 3){
+            //isSafe = true;
+            cout << "A safe state is: {" << safeState[0] << ", " << safeState[1] << ", " << safeState[2] << ", " << safeState[3] << "}" << endl;
+            loopChecks = N;
+        }
+        loopChecks++;
+    } while(loopChecks < N);
+    return 0;
 }
