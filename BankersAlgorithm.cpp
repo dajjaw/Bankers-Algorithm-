@@ -1,8 +1,7 @@
 // Dajja Williams
 // Bankers Algorithm
-// Due Sunday 23, 2023
+// Due April 23, 2023
 // Operating Systems
-
 
 #include <iostream>
 #include <pthread.h>
